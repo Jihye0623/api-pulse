@@ -1,0 +1,19 @@
+{
+  "index_patterns": ["api-pulse-*"],
+  "template": {
+    "mappings": {
+      "properties": {
+        "@timestamp":    { "type": "date" },
+        "traceId":       { "type": "keyword" },
+        "method":        { "type": "keyword" },
+        "uri":           { "type": "keyword" },
+        "statusCode":    { "type": "integer" },
+        "responseTime":  { "type": "integer" },
+        "is_error":      { "type": "boolean" },
+        "level":         { "type": "keyword" },
+        "message":       { "type": "text" },
+        "app":           { "type": "keyword" }
+      }
+    }
+  }
+}
