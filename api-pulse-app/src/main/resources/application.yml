@@ -43,3 +43,13 @@ logging:
     com.apipulse: DEBUG
   file:
     name: /app/logs/api-pulse.log
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${OPENAI_API_KEY:default-key}
+      model-name: gpt-4o-mini
+      temperature: 0.3
+
+elasticsearch:
+  uris: http://localhost:9200   # 로컬 테스트용

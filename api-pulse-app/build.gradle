@@ -35,6 +35,12 @@ dependencies {
 	runtimeOnly 'com.h2database:h2'
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 
+	// LangChain4j OpenAI
+	implementation 'dev.langchain4j:langchain4j-open-ai-spring-boot-starter:0.35.0'
+	implementation 'dev.langchain4j:langchain4j-spring-boot-starter:0.35.0'
+
+	// Elasticsearch REST Client (로그 검색용)
+	implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 }
 
 tasks.named('test') {
