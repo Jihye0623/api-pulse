@@ -1,18 +1,37 @@
 services:
 
+  postgres:
+    image: postgres:16
+    container_name: finguard-postgres
+    environment:
+      POSTGRES_DB: finguard
+      POSTGRES_USER: finguard
+      POSTGRES_PASSWORD: finguard1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - finguard-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
     container_name: finguard-es
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false       # 로컬 개발용 보안 비활성화
+      - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - "9200:9200"
     volumes:
       - es-data:/usr/share/elasticsearch/data
     networks:
-      - api-pulse-net
+      - finguard-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200"]
       interval: 10s
@@ -25,11 +44,11 @@ services:
     volumes:
       - ./elk/logstash/pipeline:/usr/share/logstash/pipeline
       - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
-      - ./api-pulse-app/logs:/logs                # Spring Boot 로그 파일 공유
+      - ./api-pulse-app/logs:/logs
     ports:
       - "5044:5044"
     networks:
-      - api-pulse-net
+      - finguard-net
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -42,7 +61,7 @@ services:
     ports:
       - "5601:5601"
     networks:
-      - api-pulse-net
+      - finguard-net
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -55,15 +74,24 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./api-pulse-app/logs:/app/logs        # 로그 파일 Logstash와 공유
+      - ./api-pulse-app/logs:/app/logs
     networks:
-      - api-pulse-net
+      - finguard-net
     depends_on:
-      - logstash
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/finguard
+      - SPRING_DATASOURCE_USERNAME=finguard
+      - SPRING_DATASOURCE_PASSWORD=finguard1234
 
 volumes:
   es-data:
+  postgres-data:
 
 networks:
-  api-pulse-net:
+  finguard-net:
     driver: bridge
