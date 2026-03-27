@@ -6,4 +6,6 @@ import java.util.List;
 public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
     List<PaymentEntity> findTop10ByOrderByCreatedAtDesc();
     List<PaymentEntity> findByStatus(PaymentEntity.PaymentStatus status);
+    List<PaymentEntity> findTop20ByOrderByCreatedAtDesc();
+
 }
