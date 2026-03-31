@@ -1,41 +1,37 @@
 package com.apipulse.api_pulse_app.agent.tools;
 
+import com.apipulse.api_pulse_app.alert.AlertEntity;
+import com.apipulse.api_pulse_app.alert.AlertRepository;
 import dev.langchain4j.agent.tool.Tool;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class SendAlertTool {
 
-    @Value("${slack.webhook-url:}")
-    private String slackWebhookUrl;
+    private final AlertRepository alertRepository;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @Tool("Slack으로 장애 알림을 발송합니다. 심각한 장애 발생 시 사용하세요.")
+    @Tool("Streamlit 대시보드로 장애 알림을 발송합니다. 심각한 장애 발생 시 사용하세요.")
     public String sendSlackAlert(String message) {
-        log.warn("[Tool] SendAlert - Slack 알림 발송: {}", message);
+        log.warn("[Tool] SendAlert - 알림 발송: {}", message);
 
-        if (slackWebhookUrl == null || slackWebhookUrl.isEmpty()) {
-            log.warn("[Tool] Slack Webhook URL 미설정 - 로그로 대체");
-            return "⚠️ [장애 알림] " + message + " (Slack 미설정으로 로그 출력)";
-        }
+        String level = message.contains("에스컬레이션") ? "ESCALATION"
+                : message.contains("오류") || message.contains("실패") ? "WARN"
+                : "INFO";
 
-        try {
-            restTemplate.postForObject(
-                    slackWebhookUrl,
-                    Map.of("text", "🚨 [FinGuard 장애 알림]\n" + message),
-                    String.class
-            );
-            return "Slack 알림 발송 완료: " + message;
-        } catch (Exception e) {
-            log.error("[Tool] Slack 발송 실패: {}", e.getMessage());
-            return "Slack 발송 실패: " + e.getMessage();
-        }
+        alertRepository.save(AlertEntity.builder()
+                .level(level)
+                .message(message)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        log.warn("[Tool] 알림 DB 저장 완료 - level: {}, message: {}", level, message);
+        return "알림 발송 완료 (Streamlit 대시보드): " + message;
     }
 }
