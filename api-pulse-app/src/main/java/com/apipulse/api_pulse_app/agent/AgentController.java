@@ -54,6 +54,14 @@ public class AgentController {
         return ResponseEntity.ok(Map.of("result", result));
     }
 
+    // Agent 실행 이력 조회
+    @GetMapping("/logs")
+    public ResponseEntity<List<AgentLogEntity>> getLogs() {
+        return ResponseEntity.ok(
+                agentLogRepository.findTop20ByOrderByCreatedAtDesc()
+        );
+    }
+
     public String runAgent(String triggerType, String situation) {
         long startTime = System.currentTimeMillis();
         log.info("Agent 실행 시작 - type: {}", triggerType);
