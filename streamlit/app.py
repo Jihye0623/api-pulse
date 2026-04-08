@@ -49,11 +49,16 @@ def get_agent_logs():
     data = fetch_json(f"{API}/agent/logs")
     return data if isinstance(data, list) else []
 
+def get_monitor_summary():
+    data = fetch_json(f"{API}/monitor/summary")
+    return data if isinstance(data, dict) else {}
+
 # -----------------------------
 # data load
 # -----------------------------
 alerts = check_alerts()
-history = get_history()
+summary = get_monitor_summary()
+history = get_history()   # 최근 결제 내역/타임라인 때문에 일단 유지
 agent_logs = get_agent_logs()
 
 if st.session_state.just_read_all:
@@ -63,16 +68,13 @@ if st.session_state.just_read_all:
 # -----------------------------
 # derived metrics
 # -----------------------------
-total = len(history)
-approved = sum(1 for p in history if p.get("status") == "APPROVED")
-failed = sum(1 for p in history if p.get("status") == "FAILED")
-error_rate = round(failed / total * 100, 1) if total > 0 else 0.0
-
-latest_reason = "-"
-for p in history:
-    if p.get("status") == "FAILED":
-        latest_reason = p.get("failReason") or p.get("reason") or "-"
-        break
+total = summary.get("totalCount", 0)
+approved = summary.get("approvedCount", 0)
+failed = summary.get("failedCount", 0)
+error_rate = round(summary.get("errorRate", 0.0), 1)
+latest_reason = summary.get("topFailReason", "-")
+current_status = summary.get("status", "NORMAL")
+summary_message = summary.get("message", "")
 
 latest_log = agent_logs[0] if agent_logs else None
 
@@ -87,25 +89,25 @@ st.divider()
 # -----------------------------
 # 1. 상태 배너
 # -----------------------------
-if error_rate >= 80:
+if current_status == "CRITICAL":
     st.error(
         f"🚨 **현재 상태: CRITICAL**  \n"
         f"- 최근 실패율: **{error_rate}%**  \n"
         f"- 주요 실패 사유: **{latest_reason}**  \n"
-        f"- 사람 개입 및 에스컬레이션이 필요한 구간입니다."
+        f"- {summary_message}"
     )
-elif error_rate >= 50:
+elif current_status == "WARNING":
     st.warning(
         f"⚠️ **현재 상태: WARNING**  \n"
         f"- 최근 실패율: **{error_rate}%**  \n"
         f"- 주요 실패 사유: **{latest_reason}**  \n"
-        f"- Agent 자동 대응 대상 구간입니다."
+        f"- {summary_message}"
     )
 else:
     st.success(
         f"✅ **현재 상태: NORMAL**  \n"
         f"- 최근 실패율: **{error_rate}%**  \n"
-        f"- 시스템이 정상 범위에서 운영 중입니다."
+        f"- {summary_message}"
     )
 
 st.divider()
