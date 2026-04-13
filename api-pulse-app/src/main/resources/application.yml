@@ -53,3 +53,8 @@ elasticsearch:
 
 slack:
   webhook-url:
+
+anomaly:
+  detection:
+    z-score-threshold: 2.0
+    interval-ms: 30000

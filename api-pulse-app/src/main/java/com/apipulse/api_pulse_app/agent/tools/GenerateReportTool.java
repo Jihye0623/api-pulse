@@ -19,6 +19,7 @@ public class GenerateReportTool {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         return String.format("""
+                
                 ========================================
                 📋 FinGuard 장애 분석 리포트
                 ========================================

@@ -4,7 +4,7 @@ import requests
 API = "http://localhost:8080"
 
 st.set_page_config(page_title="챗봇", layout="wide")
-st.title("💬 FinGuard 챗봇")
+st.title("💬 챗봇")
 st.caption("자연어로 결제 시스템 상태를 질문하세요")
 
 if "messages" not in st.session_state:

@@ -81,7 +81,7 @@ latest_log = agent_logs[0] if agent_logs else None
 # -----------------------------
 # page header
 # -----------------------------
-st.title("🛡️ FinGuard 대시보드")
+st.title("🛡️ 대시보드")
 st.caption("AI 기본법 기반 금융 결제 API 장애 자동 대응 시스템")
 
 st.divider()
