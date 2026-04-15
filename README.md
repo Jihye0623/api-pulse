@@ -17,6 +17,14 @@
 
 AI 기본법 제34조는 고영향 AI 사업자에게 5가지 책무를 요구합니다. FinGuard는 이 다섯 가지를 **선언이 아닌 동작하는 코드**로 구현한 장애 자동 대응 시스템입니다.
 
+<img width="1486" height="1306" alt="a1" src="https://github.com/user-attachments/assets/ac3df8ef-cf75-4ff7-b232-5ce24719d90d" />
+<img width="1501" height="2173" alt="a2" src="https://github.com/user-attachments/assets/69add852-7735-4850-bfb0-a693ddc41b32" />
+
+
+<img width="1504" height="1658" alt="screencapture-localhost-8501-2026-04-14-09_45_25" src="https://github.com/user-attachments/assets/9ba819f4-f090-4c04-b0a2-8bd0034058c8" />
+<img width="1411" height="1857" alt="screencapture-localhost-8501-Agent-2026-04-14-09_48_36" src="https://github.com/user-attachments/assets/27fc4270-ca3f-4efa-ae29-322922554245" />
+
+
 | AI 기본법 제34조 | 의미 | FinGuard 구현 |
 |---|---|---|
 | 위험관리방안 수립 | 장애 사전 탐지 | ELK 실시간 모니터링 + Z-score/룰 Hybrid 탐지 |
@@ -178,7 +186,7 @@ MDC.put("uri", request.getRequestURI());
 2. Spring Boot 실행 (port 8080)
 3. streamlit run app.py (port 8501)
 
-4. POST /scenario/card-error/on    # 카드 오류 시나리오 ON
+4. POST /scenario/card-error/on     # 카드 오류 시나리오 ON
 5. 30초 대기                        # AnomalyDetectionService 자동 감지
 6. Streamlit 알림 배너 확인          # WARN 알림 생성
 7. GET /agent/logs                  # Agent 실행 이력 확인
