@@ -283,3 +283,59 @@ with b4:
             st.rerun()
         else:
             st.error("모니터링 체크 요청 실패")
+
+# 6. 액션 버튼 섹션에서 b1,b2,b3,b4 아래에 추가
+
+st.markdown("**결제 테스트**")
+p1, p2, p3 = st.columns([1, 1, 4])
+
+with p1:
+    if st.button("💳 결제 승인 요청", use_container_width=True):
+        try:
+            res = requests.post(
+                f"{API}/payment/approve",
+                json={
+                    "cardNumber": "1234567890123456",
+                    "amount": 50000,
+                    "merchantName": "스타벅스"
+                },
+                timeout=10
+            )
+            if res.status_code == 200:
+                data = res.json()
+                status = data.get("status", "")
+                if status == "APPROVED":
+                    st.toast("결제 승인 완료", icon="✅")
+                else:
+                    st.toast(f"결제 실패 - {data.get('failReason', '오류')}", icon="🔴")
+                st.rerun()
+            else:
+                st.error(f"요청 실패: {res.status_code}")
+        except Exception as e:
+            st.error(f"연결 오류: {e}")
+
+with p2:
+    if st.button("💳 결제 10회 연속", use_container_width=True):
+        with st.spinner("결제 10회 요청 중..."):
+            success, fail = 0, 0
+            for _ in range(10):
+                try:
+                    res = requests.post(
+                        f"{API}/payment/approve",
+                        json={
+                            "cardNumber": "1234567890123456",
+                            "amount": 50000,
+                            "merchantName": "스타벅스"
+                        },
+                        timeout=10
+                    )
+                    if res.status_code == 200:
+                        data = res.json()
+                        if data.get("status") == "APPROVED":
+                            success += 1
+                        else:
+                            fail += 1
+                except Exception:
+                    fail += 1
+            st.toast(f"완료 — 승인 {success}건 / 실패 {fail}건", icon="💳")
+            st.rerun()

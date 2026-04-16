@@ -19,21 +19,23 @@ public class GenerateReportTool {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         return String.format("""
-                
-                ========================================
-                📋 FinGuard 장애 분석 리포트
-                ========================================
-                발생 시각 : %s
-                
-                🔍 장애 원인
-                %s
-                
-                🔧 조치 내역
-                %s
-                
-                ✅ 재발 방지책
-                %s
-                ========================================
-                """, timestamp, cause, action, prevention);
+        ## 📋 장애 분석 리포트
+        
+        **발생 시각** %s
+        
+        ---
+        
+        ### 🔍 장애 원인
+        %s
+        
+        ### 🔧 조치 내역
+        %s
+        
+        ### ✅ 재발 방지책
+        %s
+        
+        ---
+        > 현재 결제 시스템 정상화 완료
+        """, timestamp, cause, action, prevention);
     }
 }

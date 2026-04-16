@@ -1,6 +1,9 @@
 spring:
   application:
     name: finguard
+  output:
+    ansi:
+      enabled: always
 
   threads:
     virtual:
