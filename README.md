@@ -3,7 +3,7 @@
 
 **Spring Boot 애플리케이션의 로그를 ELK로 구조화하고, Z-score + 룰베이스 Hybrid 방식으로 이상을 탐지해 AI Agent가 자율 복구하는 시스템**
 
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?style=flat&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.11-6DB33F?style=flat&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-21-007396?style=flat&logo=java&logoColor=white)](https://www.oracle.com/java/)
 [![LangChain4j](https://img.shields.io/badge/LangChain4j-0.35.0-FF6B35?style=flat)](https://docs.langchain4j.dev)
 [![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.12-005571?style=flat&logo=elasticsearch&logoColor=white)](https://elastic.co)
@@ -28,7 +28,7 @@
 
 | 분류 | 기술 |
 |---|---|
-| Backend | Spring Boot 3.3, Java 21 |
+| Backend | Spring Boot 3.5.11, Java 21 |
 | AI Agent | LangChain4j 0.35.0, GPT-4o-mini (ReAct 패턴) |
 | 로그 수집 | Logstash 8.12 |
 | 검색·탐지 | Elasticsearch 8.12 |
@@ -90,9 +90,9 @@ finguard/
 ├── streamlit/                      # 대시보드
 │   ├── app.py                      # 홈 — 알림배너 / 지표카드
 │   └── pages/
-│       ├── 1_모니터링.py
-│       ├── 2_챗봇.py
-│       └── 3_Agent_이력.py
+│       ├── 1_Agent_이력.py
+│       ├── 2_모니터링.py
+│       └── 3_챗봇.py
 ├── scenario/                       # 시나리오 스크립트
 └── docker-compose.yml
 ```
@@ -106,7 +106,7 @@ finguard/
 비정형 로그는 집계도, 이상 탐지도 불가능합니다. `OncePerRequestFilter`로 모든 API 요청에 자동 로깅을 적용해 개발자가 컨트롤러마다 로깅 코드를 작성하지 않아도 전 구간이 traceId 단위로 추적됩니다.
 
 ```java
-MDC.put("traceId", UUID.randomUUID().toString().replace("-", "").substring(0, 8));
+MDC.put("traceId", UUID.randomUUID().toString().substring(0, 8));
 MDC.put("method", request.getMethod());
 MDC.put("uri", request.getRequestURI());
 MDC.put("statusCode", String.valueOf(response.getStatus()));
@@ -169,9 +169,18 @@ SystemMessage에 순서를 고정하지 않고 판단 기준만 제시해 GPT가
 ```java
 @SystemMessage("""
     당신은 금융 결제 시스템의 AI 장애 대응 에이전트입니다.
+    
     사용 가능한 툴을 활용해 상황을 스스로 판단하고 최적의 순서로 대응하세요.
+    
+    판단 기준:
+    - 먼저 시스템 상태와 지표를 확인해 장애 원인을 파악하세요.
+    - 원인이 파악되면 적절한 복구 툴을 실행하세요.
+    - 복구 후 지표를 다시 확인해 정상화 여부를 검증하세요.
+    - 자동복구가 불가능하다고 판단되면 즉시 에스컬레이션 알림을 발송하세요.
+    - 모든 처리가 완료되면 장애 리포트를 생성하세요.
+    
+    항상 한국어로 응답하세요.
     각 툴 실행 결과를 바탕으로 다음 행동을 결정하세요.
-    복구가 불가능하다고 판단되면 즉시 에스컬레이션 알림을 발송하세요.
     """)
 String analyze(@UserMessage String situation);
 ```
@@ -190,11 +199,20 @@ Agent 실행 완료 - 12084ms
 단순히 오류 모드를 끄는 것에서 나아가, 장애 중 발생한 실패 결제를 최대 3건까지 자동으로 재시도합니다.
 
 ```java
-@Tool("카드 오류로 인한 결제 장애를 자동 복구합니다.")
+@Tool("카드 오류로 인한 결제 장애를 자동 복구합니다. 카드 오류 모드를 해제하고 최근 실패한 결제를 재시도합니다.")
 public String recoverFromCardError() {
-    paymentService.setCardErrorMode(false);
-    PaymentService.RetryResult result = paymentService.retryFailedPayments();
-    return String.format("자동복구 완료 - 카드 오류 모드 해제, 재시도: %s", result.message());
+    try {
+        paymentService.setCardErrorMode(false);
+        PaymentService.RetryResult retryResult = paymentService.retryFailedPayments();
+        return String.format("""
+            === 카드 오류 자동복구 완료 ===
+            1. 카드 오류 모드 해제 완료
+            2. 실패 결제 재시도: %s
+            상태: 정상화됨
+            """, retryResult.message());
+    } catch (Exception e) {
+        return "자동복구 실패 - 수동 개입 필요: " + e.getMessage();
+    }
 }
 ```
 
@@ -238,8 +256,8 @@ public String recoverFromCardError() {
 **해결** NORMAL / WARNING / CRITICAL 상태를 명시적으로 관리하는 state 기반 로직 도입. 이상 진입 시 1회만 실행, 상태 유지 중 재실행 차단, 정상 복구 시 자동 초기화.
 
 ```java
-private boolean shouldTriggerAgent(DetectionStatus current, DetectionStatus next) {
-    return current == DetectionStatus.NORMAL && next != DetectionStatus.NORMAL;
+private boolean shouldTriggerAgent(DetectionStatus currentStatus, DetectionStatus nextStatus) {
+    return currentStatus == DetectionStatus.NORMAL && nextStatus != DetectionStatus.NORMAL;
 }
 ```
 
@@ -309,18 +327,24 @@ if [level] == "ERROR" or ([statusCode] and [statusCode] >= 500) {
 
 ### 환경 변수 설정
 
-```bash
+```yaml
 # api-pulse-app/src/main/resources/application.yml
-openai.api-key: your_openai_api_key
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: your_openai_api_key  # 또는 환경 변수(OPENAI_API_KEY) 설정
 ```
 
 ### 실행
 
 ```bash
-# 1. 인프라 실행
-docker compose up -d
+# 1. 인프라 실행 (Spring Boot를 로컬에서 직접 띄울 경우)
+docker compose up -d postgres elasticsearch logstash kibana
 
-# 2. Spring Boot 실행
+# 또는 전체를 컨테이너로 실행할 경우 (컨테이너 실행 전에 ./gradlew bootJar 빌드 필요)
+# docker compose up -d
+
+# 2. Spring Boot 로컬 실행
 cd api-pulse-app
 ./gradlew bootRun
 
